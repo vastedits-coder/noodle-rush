@@ -222,6 +222,70 @@ local function clearRows()
 	rows = {}
 end
 
+-- Confirmation popup ---------------------------------------------------------------------
+
+local confirmFrame = create("Frame", {
+	Size = UDim2.fromOffset(420, 190),
+	Position = UDim2.fromScale(0.5, 0.5),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	BackgroundColor3 = COLORS.cream,
+	Visible = false,
+	ZIndex = 10,
+	Parent = screen,
+}, { corner(16), Theme.stroke() })
+local confirmText = textLabel({
+	Size = UDim2.new(1, -28, 0, 96),
+	Position = UDim2.fromOffset(14, 14),
+	Font = Enum.Font.GothamMedium,
+	TextColor3 = COLORS.dark,
+	TextWrapped = true,
+	TextXAlignment = Enum.TextXAlignment.Center,
+	ZIndex = 11,
+	Parent = confirmFrame,
+})
+local confirmYes = create("TextButton", {
+	Size = UDim2.new(0.5, -21, 0, 50),
+	Position = UDim2.new(0, 14, 1, -64),
+	BackgroundColor3 = COLORS.buy,
+	Text = "Buy anyway",
+	Font = Enum.Font.FredokaOne,
+	TextScaled = true,
+	TextColor3 = COLORS.text,
+	ZIndex = 11,
+	Parent = confirmFrame,
+}, { corner(10), Theme.padding(8) })
+local confirmNo = create("TextButton", {
+	Size = UDim2.new(0.5, -21, 0, 50),
+	Position = UDim2.new(0.5, 7, 1, -64),
+	BackgroundColor3 = COLORS.danger,
+	Text = "Not yet",
+	Font = Enum.Font.FredokaOne,
+	TextScaled = true,
+	TextColor3 = COLORS.text,
+	Modal = true,
+	ZIndex = 11,
+	Parent = confirmFrame,
+}, { corner(10), Theme.padding(8) })
+local onConfirm: (() -> ())? = nil
+confirmYes.Activated:Connect(function()
+	confirmFrame.Visible = false
+	local callback = onConfirm
+	onConfirm = nil
+	if callback then
+		callback()
+	end
+end)
+confirmNo.Activated:Connect(function()
+	confirmFrame.Visible = false
+	onConfirm = nil
+end)
+
+function UI.confirm(text: string, callback: () -> ())
+	confirmText.Text = text
+	onConfirm = callback
+	confirmFrame.Visible = true
+end
+
 -- Row definitions ------------------------------------------------------------------------
 
 type RowDef = {
@@ -359,10 +423,34 @@ local function staffRows(): { RowDef }
 	return defs
 end
 
+-- A new table brings more customers. Without a waiter AND a chef that gets hard,
+-- so we ask first.
+local function tablesRow(data): RowDef
+	local def = cashRow(
+		"tables",
+		`Tables ({data.tables}/{Config.Tables.max})`,
+		"More seats, customers come more often",
+		"tables"
+	)
+	local buy = def.onClick
+	def.onClick = function()
+		local staff = state.data.staff
+		if staff.waiter.count == 0 or staff.chef.count == 0 then
+			UI.confirm(
+				"More tables means more customers at once. Without a waiter and a chef you'll be doing everything yourself. Are you sure?",
+				buy
+			)
+		else
+			buy()
+		end
+	end
+	return def
+end
+
 local function restaurantRows(): { RowDef }
 	local data = state.data
 	local defs = {
-		cashRow("tables", `Tables ({data.tables}/{Config.Tables.max})`, "More seats, more customers at once", "tables"),
+		tablesRow(data),
 		levelRow(
 			"charm",
 			"Charm",

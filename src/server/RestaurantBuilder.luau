@@ -17,8 +17,10 @@ local WALL_HEIGHT = 14
 local TABLE_X = { -27, -20, -13, -6 }
 local TABLE_Z = { -8, 0, 8 }
 local AISLE_X = 2
-local BAR_X = 22
-local BAR_STOOL_Z = { -3, 1, 5, 9 }
+local BAR_X = 15 -- bar counter, right next to the dining room
+local BACK_BAR_X = 19.6 -- drink machines behind it
+local BARTENDER_X = 17.5
+local BAR_STOOL_Z = { -4, -0.5, 3, 6.5 }
 
 local PALETTE = {
 	wall = Color3.fromRGB(245, 232, 210),
@@ -308,17 +310,25 @@ function RestaurantBuilder.build(plotIndex: number, owner: Player)
 	-- Bar -----------------------------------------------------------------------
 	local barCounter = part({
 		Name = "BarCounter",
-		Size = Vector3.new(2.5, 3.6, 16),
-		Position = at(BAR_X, FLOOR_TOP + 1.8, 2),
+		Size = Vector3.new(2.5, 3.6, 14),
+		Position = at(BAR_X, FLOOR_TOP + 1.8, 1),
 		Color = PALETTE.darkWood,
 		Material = Enum.Material.Wood,
 		Parent = model,
 	})
 	label(barCounter, "BAR", 4, 30)
+	part({
+		Name = "BackBar",
+		Size = Vector3.new(1.2, 2.6, 17),
+		Position = at(BACK_BAR_X + 1.4, FLOOR_TOP + 1.3, -0.5),
+		Color = PALETTE.darkWood,
+		Material = Enum.Material.Wood,
+		Parent = model,
+	})
 	local drinkPass = part({
 		Name = "DrinkPass",
 		Size = Vector3.new(2.5, 3.6, 2.5),
-		Position = at(BAR_X, FLOOR_TOP + 1.8, 12.5),
+		Position = at(BAR_X, FLOOR_TOP + 1.8, -8.6),
 		Color = Color3.fromRGB(240, 240, 240),
 		Material = Enum.Material.Marble,
 		Parent = model,
@@ -327,21 +337,21 @@ function RestaurantBuilder.build(plotIndex: number, owner: Player)
 
 	local dispensers = {}
 	for i, drink in Config.Drinks do
-		local z = -9 + (i - 1) * 3.2
+		local z = -6.5 + (i - 1) * 2.6
 		local machine = part({
 			Name = "Dispenser_" .. drink.id,
-			Size = Vector3.new(1.6, 4, 2.4),
-			Position = at(30.6, FLOOR_TOP + 2, z),
+			Size = Vector3.new(1.4, 2.2, 2),
+			Position = at(BACK_BAR_X + 1.4, FLOOR_TOP + 3.7, z),
 			Color = drink.color,
 			Material = Enum.Material.SmoothPlastic,
 			Parent = model,
 		})
 		dispensers[drink.id] = {
 			part = machine,
-			label = label(machine, drink.name, 3.4, 16),
-			progress = progressBar(machine, 2.6),
+			label = label(machine, drink.name, 2.6, 16),
+			progress = progressBar(machine, 1.9),
 			prompt = prompt(machine, "Pour", drink.name),
-			spot = walk(28.4, z),
+			spot = walk(BARTENDER_X + 0.6, z),
 			busy = false,
 		}
 	end
@@ -349,11 +359,11 @@ function RestaurantBuilder.build(plotIndex: number, owner: Player)
 	local barSeats = {}
 	for i, z in BAR_STOOL_Z do
 		barSeats[i] = {
-			stand = walk(18, z),
-			approach = walk(12, z),
+			stand = walk(11.4, z),
+			approach = walk(8, z),
 			top = at(BAR_X - 0.6, FLOOR_TOP + 3.6 + 0.4, z),
-			bartenderSpot = walk(25.4, z),
-			seatPos = at(19.6, FLOOR_TOP + 2.2, z),
+			bartenderSpot = walk(BARTENDER_X, z),
+			seatPos = at(12.8, FLOOR_TOP + 2.2, z),
 			seat = nil :: Seat?,
 		}
 	end
@@ -395,12 +405,12 @@ function RestaurantBuilder.build(plotIndex: number, owner: Player)
 			return walk(AISLE_X, z)
 		end,
 		barAisle = function(z: number)
-			return walk(12, z)
+			return walk(8, z)
 		end,
 		stations = stations,
 		dispensers = dispensers,
-		drinkPass = { top = at(BAR_X, FLOOR_TOP + 3.6 + 0.4, 12.5), pickupSpot = walk(18.5, 12.5) },
-		drinkPassBartender = walk(25.4, 12.5),
+		drinkPass = { top = at(BAR_X, FLOOR_TOP + 3.6 + 0.4, -8.6), pickupSpot = walk(12.4, -8.6) },
+		drinkPassBartender = walk(BARTENDER_X, -8.6),
 		barSeats = barSeats,
 		tables = tableSlots,
 		chefIdle = function(i: number)
@@ -410,7 +420,7 @@ function RestaurantBuilder.build(plotIndex: number, owner: Player)
 			return walk(-2 + (i - 1) * 2.5, -11)
 		end,
 		bartenderIdle = function(i: number)
-			return walk(26, -4 + (i - 1) * 4)
+			return walk(BARTENDER_X, -2 + (i - 1) * 4)
 		end,
 		playerSpawn = CFrame.new(at(2, FLOOR_TOP + 3, 12)) * CFrame.Angles(0, 0, 0),
 	}

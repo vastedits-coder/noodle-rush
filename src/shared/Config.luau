@@ -69,7 +69,7 @@ Config.Drinks = {
 		id = "juice",
 		name = "Orange Juice",
 		price = 3,
-		prepTime = 2,
+		prepTime = 1,
 		unlockCost = 0,
 		color = Color3.fromRGB(255, 160, 40),
 	},
@@ -77,7 +77,7 @@ Config.Drinks = {
 		id = "volt",
 		name = "Volt Energy",
 		price = 7,
-		prepTime = 2,
+		prepTime = 1,
 		unlockCost = 0,
 		minAge = 16,
 		color = Color3.fromRGB(120, 255, 80),
@@ -86,7 +86,7 @@ Config.Drinks = {
 		id = "lemonade",
 		name = "Fresh Lemonade",
 		price = 12,
-		prepTime = 3,
+		prepTime = 1.5,
 		unlockCost = 800,
 		color = Color3.fromRGB(255, 245, 140),
 	},
@@ -94,7 +94,7 @@ Config.Drinks = {
 		id = "bubble_tea",
 		name = "Bubble Tea",
 		price = 40,
-		prepTime = 5,
+		prepTime = 2.5,
 		unlockCost = 12000,
 		color = Color3.fromRGB(200, 150, 110),
 	},
@@ -102,7 +102,7 @@ Config.Drinks = {
 		id = "matcha",
 		name = "Iced Matcha",
 		price = 140,
-		prepTime = 6,
+		prepTime = 3,
 		unlockCost = 150000,
 		color = Color3.fromRGB(130, 190, 90),
 	},
@@ -110,7 +110,7 @@ Config.Drinks = {
 		id = "dragon_soda",
 		name = "Dragon Fruit Soda",
 		price = 450,
-		prepTime = 6,
+		prepTime = 3,
 		unlockCost = 2000000,
 		color = Color3.fromRGB(240, 60, 150),
 	},
@@ -166,8 +166,9 @@ Config.KitchenSpeed = { maxLevel = 25, baseCost = 100, growth = 1.5, factor = 0.
 Config.BarSpeed = { maxLevel = 15, baseCost = 150, growth = 1.55, factor = 0.93 }
 
 -- Restaurant --------------------------------------------------------------------
-Config.Tables = { start = 3, max = 12, baseCost = 80, growth = 1.65 }
-Config.BarSeats = { start = 2, max = 4, baseCost = 300, growth = 2.2 }
+-- You start small: 2 tables and no bar stools. Each new seat also brings customers faster.
+Config.Tables = { start = 2, max = 12, baseCost = 80, growth = 1.65 }
+Config.BarSeats = { start = 0, max = 4, baseCost = 100, growth = 3 }
 
 -- "Charm" makes customers say yes to upsells and suggestions.
 Config.Charm = {
@@ -187,7 +188,8 @@ Config.Marketing = {
 	maxLevel = 25,
 	baseCost = 150,
 	growth = 1.45,
-	baseInterval = 9, -- seconds between customers at level 0
+	baseInterval = 14, -- seconds between customers with 2 seats and marketing level 0
+	seatsExponent = 0.8, -- more seats -> shorter interval: (2 / seats) ^ exponent
 	intervalFactor = 0.93,
 	minInterval = 1.5,
 	barChance = 0.25, -- share of customers who only come for a drink

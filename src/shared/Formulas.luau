@@ -64,7 +64,9 @@ end
 function Formulas.spawnInterval(data): number
 	local m = Config.Marketing
 	local ratingFactor = 2 - 0.24 * Formulas.rating(data)
-	return math.max(m.minInterval, m.baseInterval * m.intervalFactor ^ data.marketing * ratingFactor)
+	local seats = data.tables + data.barSeats
+	local seatFactor = (2 / math.max(seats, 1)) ^ m.seatsExponent
+	return math.max(m.minInterval, m.baseInterval * m.intervalFactor ^ data.marketing * ratingFactor * seatFactor)
 end
 
 function Formulas.charmBonus(data, hasMasterUpseller: boolean): number
