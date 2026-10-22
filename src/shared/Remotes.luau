@@ -6,6 +6,9 @@ local RunService = game:GetService("RunService")
 local DEFINITIONS = {
 	StateUpdated = "RemoteEvent", -- server -> client: full state snapshot
 	Notify = "RemoteEvent", -- server -> client: toast message
+	Review = "RemoteEvent", -- server -> client: a customer left a review
+	Dialog = "RemoteEvent", -- server -> client: show/close a conversation with a customer
+	DialogChoice = "RemoteEvent", -- client -> server: the option the player picked
 	Purchase = "RemoteFunction", -- client -> server: buy an upgrade with cash
 }
 

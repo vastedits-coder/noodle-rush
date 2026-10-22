@@ -20,21 +20,27 @@ end
 
 local function defaultData()
 	local staff = {}
-	for roleId, role in Config.Staff do
-		staff[roleId] = { count = role.startCount, speed = 1 }
+	for roleId in Config.Staff do
+		staff[roleId] = { count = 0, speed = 1 }
 	end
 	return {
-		version = 1,
+		version = 2,
 		cash = 0,
 		totalEarned = 0,
 		served = 0,
 		angry = 0,
 		dishes = { ramen = 1 },
+		drinks = { juice = true, volt = true },
 		staff = staff,
 		tables = Config.Tables.start,
-		upsell = 0,
+		barSeats = Config.BarSeats.start,
+		kitchenSpeed = 0,
+		barSpeed = 0,
+		charm = 0,
 		marketing = 0,
 		decor = {},
+		reviews = {}, -- newest last: { stars = 1-5, text = string }
+		risk = 0,
 		receipts = {}, -- [PurchaseId] = os.time(), so a product is never granted twice
 		incomePerMin = 0,
 		lastOnline = 0,

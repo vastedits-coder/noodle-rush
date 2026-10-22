@@ -11,20 +11,28 @@ local UpgradeService = {}
 
 local VALID_KINDS = {
 	dish = true,
+	drink = true,
 	staffHire = true,
 	staffSpeed = true,
+	kitchenSpeed = true,
+	barSpeed = true,
 	tables = true,
-	upsell = true,
+	barSeats = true,
+	charm = true,
 	marketing = true,
 	decor = true,
 }
 
 local function apply(session, kind: string, id: string?)
 	local data = session.data
+	local layout = session.layout
 	if kind == "dish" then
 		local dishId = id :: string
 		data.dishes[dishId] = (data.dishes[dishId] or 0) + 1
-		RestaurantBuilder.updateStations(session.layout, data)
+		RestaurantBuilder.updateStations(layout, data)
+	elseif kind == "drink" then
+		data.drinks[id :: string] = true
+		RestaurantBuilder.updateDispensers(layout, data)
 	elseif kind == "staffHire" then
 		data.staff[id :: string].count += 1
 		session.restaurant:syncStaff()
@@ -32,14 +40,16 @@ local function apply(session, kind: string, id: string?)
 		data.staff[id :: string].speed += 1
 	elseif kind == "tables" then
 		data.tables += 1
-		RestaurantBuilder.setTables(session.layout, data.tables)
-	elseif kind == "upsell" then
-		data.upsell += 1
-	elseif kind == "marketing" then
-		data.marketing += 1
+		RestaurantBuilder.setTables(layout, data.tables)
+	elseif kind == "barSeats" then
+		data.barSeats += 1
+		RestaurantBuilder.setBarSeats(layout, data.barSeats)
 	elseif kind == "decor" then
 		data.decor[id :: string] = true
-		RestaurantBuilder.updateDecor(session.layout, data)
+		RestaurantBuilder.updateDecor(layout, data)
+	else
+		-- kitchenSpeed, barSpeed, charm, marketing: plain levels
+		data[kind] += 1
 	end
 end
 

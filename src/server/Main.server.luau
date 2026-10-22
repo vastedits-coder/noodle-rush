@@ -1,5 +1,6 @@
 -- Entry point: one session per player, each with its own restaurant plot.
 
+local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11,10 +12,24 @@ local RestaurantBuilder = require(script.Parent.RestaurantBuilder)
 local Restaurant = require(script.Parent.Restaurant)
 local UpgradeService = require(script.Parent.UpgradeService)
 local Monetization = require(script.Parent.Monetization)
+local Avatars = require(script.Parent.Avatars)
+local Conversation = require(script.Parent.Conversation)
 
 local StateUpdated = Remotes.event("StateUpdated")
 local Notify = Remotes.event("Notify")
 local Purchase = Remotes.func("Purchase")
+local ReviewEvent = Remotes.event("Review")
+local DialogChoice = Remotes.event("DialogChoice")
+
+-- NPCs only collide with the floor, so they never get stuck on furniture or players.
+for _, group in { "NPC", "Furniture", "Players" } do
+	PhysicsService:RegisterCollisionGroup(group)
+end
+PhysicsService:CollisionGroupSetCollidable("NPC", "NPC", false)
+PhysicsService:CollisionGroupSetCollidable("NPC", "Furniture", false)
+PhysicsService:CollisionGroupSetCollidable("NPC", "Players", false)
+
+Avatars.start()
 
 local AUTOSAVE_SECONDS = 60
 local MAX_RECEIPTS = 100
@@ -69,6 +84,10 @@ local function createSession(player: Player, data, canSave: boolean)
 		Notify:FireClient(player, text)
 	end
 
+	function session.review(stars: number, text: string, name: string)
+		ReviewEvent:FireClient(player, { stars = stars, text = text, name = name })
+	end
+
 	function session.currentIncomePerMin(): number
 		local now = os.clock()
 		local log = session.runtime.incomeLog
@@ -117,6 +136,8 @@ local function snapshot(session)
 		atmosphere = Formulas.atmosphere(session.data),
 		incomePerMin = session.currentIncomePerMin(),
 		rushSecondsLeft = math.max(0, session.runtime.rushUntil - os.time()),
+		rating = Formulas.rating(session.data),
+		barClosedSeconds = if session.restaurant then math.max(0, session.restaurant.barClosedUntil - os.time()) else 0,
 	}
 end
 
@@ -136,7 +157,21 @@ local function giveOfflineEarnings(session)
 	end
 end
 
+local function setPlayerCollisionGroup(character: Model)
+	for _, d in character:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CollisionGroup = "Players"
+		end
+	end
+	character.DescendantAdded:Connect(function(d)
+		if d:IsA("BasePart") then
+			d.CollisionGroup = "Players"
+		end
+	end)
+end
+
 local function moveCharacterHome(session, character: Model)
+	setPlayerCollisionGroup(character)
 	if not session.layout then
 		return
 	end
@@ -194,6 +229,8 @@ local function onPlayerAdded(player: Player)
 	session.plot = plot
 	session.layout = RestaurantBuilder.build(plot, player)
 	RestaurantBuilder.setTables(session.layout, data.tables)
+	RestaurantBuilder.setBarSeats(session.layout, data.barSeats)
+	RestaurantBuilder.updateDispensers(session.layout, data)
 	RestaurantBuilder.updateStations(session.layout, data)
 	RestaurantBuilder.updateDecor(session.layout, data)
 	session.restaurant = Restaurant.new(session, session.layout)
@@ -203,6 +240,11 @@ local function onPlayerAdded(player: Player)
 
 	player.CharacterAdded:Connect(function(character)
 		moveCharacterHome(session, character)
+	end)
+	player.CharacterRemoving:Connect(function()
+		if session.restaurant then
+			session.restaurant:onCharacterRemoving()
+		end
 	end)
 	if player.Character then
 		moveCharacterHome(session, player.Character)
@@ -238,6 +280,23 @@ Purchase.OnServerInvoke = function(player, kind, id)
 	end
 	return UpgradeService.purchase(session, kind, id)
 end
+
+DialogChoice.OnServerEvent:Connect(function(player, customerId, optionId)
+	local session = sessions[player]
+	local restaurant = session and session.restaurant
+	if not restaurant or type(customerId) ~= "number" or type(optionId) ~= "string" then
+		return
+	end
+	local customer = restaurant.customers[customerId]
+	if not customer then
+		return
+	end
+	if optionId == "__close" then
+		Conversation.onClose(restaurant, customer)
+	else
+		Conversation.onChoice(restaurant, customer, optionId)
+	end
+end)
 
 Players.PlayerAdded:Connect(onPlayerAdded)
 Players.PlayerRemoving:Connect(onPlayerRemoving)
